@@ -1,0 +1,118 @@
+import express from 'express';
+import cors from 'cors';
+import { supabase } from './supabase.js';
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+/* ===== АВТОРИЗАЦИЯ ===== */
+app.post('/auth', async (req, res) => {
+  const { telegram_id } = req.body;
+
+  let { data: user } = await supabase
+    .from('users')
+    .select('*')
+    .eq('telegram_id', telegram_id)
+    .single();
+
+  if (!user) {
+    const { data } = await supabase
+      .from('users')
+      .insert({ telegram_id })
+      .select()
+      .single();
+    user = data;
+  }
+
+  res.json(user);
+});
+
+/* ===== ДОБАВИТЬ КРЕДИТ / ДОЛГ ===== */
+app.post('/obligation', async (req, res) => {
+  const { user_id, type, name, amount } = req.body;
+
+  const { data, error } = await supabase
+    .from('obligations')
+    .insert({
+      user_id,
+      type,
+      name,
+      initial_amount: amount,
+      current_amount: amount
+    })
+    .select()
+    .single();
+
+  res.json({ data, error });
+});
+
+/* ===== ПЛАТЁЖ ===== */
+app.post('/payment', async (req, res) => {
+  const { obligation_id, amount } = req.body;
+
+  await supabase.from('payments').insert({
+    obligation_id,
+    amount
+  });
+
+  const { data: obligation } = await supabase
+    .from('obligations')
+    .select('*')
+    .eq('id', obligation_id)
+    .single();
+
+  await supabase
+    .from('obligations')
+    .update({
+      current_amount: Math.max(0, obligation.current_amount - amount)
+    })
+    .eq('id', obligation_id);
+
+  res.json({ ok: true });
+});
+
+/* ===== ДОХОД ===== */
+app.post('/income', async (req, res) => {
+  const { user_id, source, amount } = req.body;
+
+  const { data } = await supabase
+    .from('income')
+    .insert({ user_id, source, amount })
+    .select()
+    .single();
+
+  res.json(data);
+});
+
+/* ===== ЗАГРУЗКА ВСЕГО ===== */
+app.get('/state/:user_id', async (req, res) => {
+  const user_id = req.params.user_id;
+
+  const credits = await supabase
+    .from('obligations')
+    .select('*, payments(*)')
+    .eq('user_id', user_id)
+    .eq('type', 'credit');
+
+  const debts = await supabase
+    .from('obligations')
+    .select('*, payments(*)')
+    .eq('user_id', user_id)
+    .eq('type', 'debt');
+
+  const income = await supabase
+    .from('income')
+    .select('*')
+    .eq('user_id', user_id);
+
+  res.json({
+    credits: credits.data,
+    debts: debts.data,
+    income: income.data
+  });
+});
+
+app.listen(3000, () =>
+  console.log('🚀 Backend запущен на http://localhost:3000')
+);
