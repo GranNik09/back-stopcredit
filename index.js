@@ -142,3 +142,14 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Backend запущен на порту ${PORT}`);
 });
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+console.log("DEBUG Supabase URL:", supabaseUrl);
+console.log("DEBUG Supabase KEY:", supabaseKey ? supabaseKey.slice(0,10) + "..." : undefined);
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("❌ SUPABASE_URL или SUPABASE_KEY не заданы!");
+  process.exit(1);
+}
