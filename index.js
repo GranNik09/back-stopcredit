@@ -13,20 +13,19 @@ app.use(express.json());
 // ---------------------
 // Supabase client
 // ---------------------
-// Берёт URL и KEY из process.env
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error("❌ SUPABASE_URL или SUPABASE_KEY не заданы!");
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 console.log("✅ Supabase подключен");
-console.log("SUPABASE_URL:", supabaseUrl);
-console.log("SUPABASE_KEY:", supabaseKey?.slice(0, 10) + "...");
+console.log("SUPABASE_URL:", SUPABASE_URL);
+console.log("SUPABASE_KEY:", SUPABASE_KEY?.slice(0, 10) + "...");
 
 // ---------------------
 // Авторизация пользователя
@@ -142,14 +141,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Backend запущен на порту ${PORT}`);
 });
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-
-console.log("DEBUG Supabase URL:", supabaseUrl);
-console.log("DEBUG Supabase KEY:", supabaseKey ? supabaseKey.slice(0,10) + "..." : undefined);
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ SUPABASE_URL или SUPABASE_KEY не заданы!");
-  process.exit(1);
-}
