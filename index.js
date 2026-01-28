@@ -4,15 +4,11 @@ import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
 
 const app = express();
-
-/* =====================
-   MIDDLEWARE
-===================== */
 app.use(cors());
 app.use(express.json());
 
 /* =====================
-   ENV CHECK
+   Supabase
 ===================== */
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
@@ -22,37 +18,25 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   process.exit(1);
 }
 
-console.log('✅ Supabase ENV загружены');
-
-/* =====================
-   SUPABASE CLIENT
-===================== */
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 console.log('✅ Supabase подключен');
 
 /* =====================
-   ROOT (важно для Railway)
+   ROOT
 ===================== */
 app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    service: 'StopCredit backend',
-  });
+  res.json({ status: 'ok', service: 'StopCredit backend' });
 });
 
 /* =====================
    AUTH
 ===================== */
 app.post('/auth', async (req, res) => {
-  console.log('👉 /auth called');
-  console.log('BODY:', req.body);
-
   try {
+    console.log('👉 /auth called', req.body);
     const { telegram_id } = req.body;
 
-    if (!telegram_id) {
-      return res.status(400).json({ error: 'telegram_id missing' });
-    }
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id missing' });
 
     let { data: user, error } = await supabase
       .from('users')
@@ -60,24 +44,18 @@ app.post('/auth', async (req, res) => {
       .eq('telegram_id', telegram_id)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
     if (!user) {
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .insert({ telegram_id })
         .select()
         .single();
-
       if (insertError) throw insertError;
       user = newUser;
     }
 
     console.log('✅ AUTH OK:', user);
     res.json(user);
-
   } catch (err) {
     console.error('❌ AUTH ERROR:', err);
     res.status(500).json({ error: err.message });
@@ -85,12 +63,11 @@ app.post('/auth', async (req, res) => {
 });
 
 /* =====================
-   OBLIGATION (кредиты / долги)
+   Создать долг / кредит
 ===================== */
 app.post('/obligation', async (req, res) => {
   try {
     const { user_id, type, name, amount } = req.body;
-
     const { data, error } = await supabase
       .from('obligations')
       .insert({
@@ -104,7 +81,6 @@ app.post('/obligation', async (req, res) => {
       .single();
 
     if (error) throw error;
-
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -113,16 +89,13 @@ app.post('/obligation', async (req, res) => {
 });
 
 /* =====================
-   PAYMENT
+   Платёж
 ===================== */
 app.post('/payment', async (req, res) => {
   try {
     const { obligation_id, amount } = req.body;
 
-    await supabase.from('payments').insert({
-      obligation_id,
-      amount,
-    });
+    await supabase.from('payments').insert({ obligation_id, amount });
 
     const { data: obligation } = await supabase
       .from('obligations')
@@ -132,9 +105,7 @@ app.post('/payment', async (req, res) => {
 
     await supabase
       .from('obligations')
-      .update({
-        current_amount: Math.max(0, obligation.current_amount - amount),
-      })
+      .update({ current_amount: Math.max(0, obligation.current_amount - amount) })
       .eq('id', obligation_id);
 
     res.json({ success: true });
@@ -145,19 +116,17 @@ app.post('/payment', async (req, res) => {
 });
 
 /* =====================
-   GET FULL STATE
+   Получить состояние пользователя
 ===================== */
 app.get('/state/:user_id', async (req, res) => {
   try {
     const user_id = req.params.user_id;
-
     const { data, error } = await supabase
       .from('obligations')
       .select('*, payments(*)')
       .eq('user_id', user_id);
 
     if (error) throw error;
-
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -166,9 +135,7 @@ app.get('/state/:user_id', async (req, res) => {
 });
 
 /* =====================
-   START SERVER
+   Запуск сервера
 ===================== */
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`🚀 Backend запущен на порту ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Backend запущен на порту ${PORT}`));
