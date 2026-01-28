@@ -8,6 +8,25 @@ console.log("Telegram object:", window.Telegram.WebApp);
 console.log("Telegram user object:", user);
 app.use(cors());
 app.use(express.json());
+try {
+  const res = await fetch(`${API_BASE}/auth`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ telegram_id: user.id })
+  });
+
+  if (!res.ok) {
+    throw new Error("HTTP error " + res.status);
+  }
+
+  const userData = await res.json();
+  console.log("Backend user data:", userData);
+
+  userId = userData.id;
+} catch (err) {
+  console.error("Ошибка подключения к backend:", err);
+  document.getElementById('status').innerText = "❌ Ошибка подключения к серверу!";
+}
 
 /* =====================
    Supabase
@@ -141,4 +160,5 @@ app.get('/state/:user_id', async (req, res) => {
 ===================== */
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Backend запущен на порту ${PORT}`));
+
 
