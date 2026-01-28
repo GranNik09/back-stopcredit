@@ -2,8 +2,10 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { createClient } from '@supabase/supabase-js';
-
+const user = window.Telegram.WebApp.initDataUnsafe?.user;
 const app = express();
+console.log("Telegram object:", window.Telegram.WebApp);
+console.log("Telegram user object:", user);
 app.use(cors());
 app.use(express.json());
 
@@ -139,3 +141,4 @@ app.get('/state/:user_id', async (req, res) => {
 ===================== */
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`🚀 Backend запущен на порту ${PORT}`));
+
